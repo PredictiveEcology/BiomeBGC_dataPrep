@@ -161,7 +161,7 @@ defineModule(sim, list(
                  ),
                  sourceURL = "https://www.nature.com/articles/s41467-024-55606-y"
     ),
-    expectsInput("NFixationRates", "SpatRaster",
+    expectsInput("NfixationRates", "SpatRaster",
                  desc = paste(
                    "Raster of annual rate of symbiotic + asymbiotic nitrogen fixation (kgN/m2/yr)."
                  ),
@@ -557,7 +557,7 @@ climatePolygonMap <- function(climatePolygons){
     
     # Used to crop/mask/project the inputs
     polyTo <- buffer(sim$studyArea, 10^4)
-    rstTo <- terra::rast(polyTo, res = res(sim$rastertoMatch))
+    rstTo <- terra::rast(polyTo, res = res(sim$rasterToMatch))
     values(rstTo) <- 1
     treedPixels <- 1
     
@@ -713,7 +713,7 @@ climatePolygonMap <- function(climatePolygons){
   
   # Total N fixation rates
   # Default source Reis Ely et al., 2025: https://doi.org/10.1038/s41597-025-05131-4
-  if (!suppliedElsewhere('NFixationRates', sim)) {
+  if (!suppliedElsewhere('NfixationRates', sim)) {
     sim$NfixationRates <- prepNfixation(
       destinationPath = dPath,
       to = rstTo,
