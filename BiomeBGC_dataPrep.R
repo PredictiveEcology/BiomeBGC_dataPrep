@@ -20,7 +20,11 @@ defineModule(sim, list(
   documentation = list("NEWS.md", "README.md", "BiomeBGC_dataPrep.Rmd"),
   reqdPkgs = list("PredictiveEcology/SpaDES.core (>= 3.0.3)", "ggplot2", "PredictiveEcology/LandR@development",
                   "PredictiveEcology/BiomeBGCR@development", "elevatr", "terra", "rvest", "data.table",
-                  "CWFC-CCFB/J4R", "RNCan/BioSimClient_R", "geosphere", "ggpubr"),
+                  ## RNCan/BioSimClient_R's repo name differs from its DESCRIPTION Package: field
+                  ## (BioSIM). Require::extractPkgName() falls back to parsing the repo name unless
+                  ## the reqdPkgs entry is named, which otherwise makes SpaDES.core::convertToPackage()
+                  ## write "Imports: BioSimClient_R" (a nonexistent package) instead of "Imports: BioSIM".
+                  "CWFC-CCFB/J4R", BioSIM = "RNCan/BioSimClient_R", "geosphere", "ggpubr"),
   parameters = bindrows(
     defineParameter("carbonState", "numeric", c(0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), NA, NA,
                     paste("11-number vector for initial carbon conditions:",
