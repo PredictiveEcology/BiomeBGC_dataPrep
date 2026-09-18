@@ -12,17 +12,23 @@ suppressPackageStartupMessages({
 })
 
 # BioSIM (RNCan/BioSimClient_R) imports J4R (CWFC-CCFB/J4R), which is
-# GitHub-only (not on CRAN). The reusable CI workflow installs all of
-# reqdPkgs in one Require::Require() batch call, and pak's parallel
-# "identify-and-defer" install strategy can attempt to build BioSIM before
-# J4R has finished installing, leaving BioSIM missing even though J4R lands
-# successfully (see PredictiveEcology/BiomeBGC_dataPrep#7). remotes
-# installs serially and follows a package's Remotes: DESCRIPTION field, so
-# retry with it here if the batch install left BioSIM (or J4R) missing.
-if (!requireNamespace("BioSIM", quietly = TRUE) || !requireNamespace("J4R", quietly = TRUE)) {
+# GitHub-only (not on CRAN); LandR in turn Suggests BioSIM. All of these are
+# installed together in one Require::Require() batch call by the reusable CI
+# workflow, and pak's parallel "identify-and-defer" install strategy can
+# attempt to build a package before its GitHub-only dependency has finished
+# installing. When that happens, the dependent package -- and anything that
+# in turn depends on it (LandR, then pemisc) -- is left missing even though
+# J4R itself lands successfully (see PredictiveEcology/BiomeBGC_dataPrep#7).
+# remotes installs serially and follows a package's Remotes: DESCRIPTION
+# field, so retry with it here, in dependency order, for whatever the batch
+# install left missing.
+if (!requireNamespace("J4R", quietly = TRUE) || !requireNamespace("BioSIM", quietly = TRUE) ||
+    !requireNamespace("LandR", quietly = TRUE) || !requireNamespace("pemisc", quietly = TRUE)) {
   if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
   if (!requireNamespace("J4R", quietly = TRUE)) remotes::install_github("CWFC-CCFB/J4R")
   if (!requireNamespace("BioSIM", quietly = TRUE)) remotes::install_github("RNCan/BioSimClient_R")
+  if (!requireNamespace("pemisc", quietly = TRUE)) remotes::install_github("PredictiveEcology/pemisc@development")
+  if (!requireNamespace("LandR", quietly = TRUE)) remotes::install_github("PredictiveEcology/LandR@development")
 }
 
 moduleRPath <- testthat::test_path("..", "..", "R")
