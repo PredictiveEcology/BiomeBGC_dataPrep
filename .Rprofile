@@ -9,7 +9,7 @@
 ## non-fatal, so the step "succeeds" but a later step then fails because BioSIM
 ## is missing. Installing J4R and BioSIM one at a time here, before that batched
 ## call runs, avoids ever giving pak the chance to schedule them as parallel
-## siblings. This file is sourced automatically at the start of every 
+## siblings. This file is sourced automatically at the start of every Rscript
 ## invocation (including each CI workflow step), so it is a no-op once both
 ## packages are already installed.
 ##
