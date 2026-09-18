@@ -20,7 +20,7 @@ defineModule(sim, list(
   documentation = list("NEWS.md", "README.md", "BiomeBGC_dataPrep.Rmd"),
   reqdPkgs = list("PredictiveEcology/SpaDES.core (>= 3.0.3)", "ggplot2", "PredictiveEcology/LandR@development",
                   "PredictiveEcology/BiomeBGCR@development", "elevatr", "terra", "rvest", "data.table",
-                  "BioSIM", "geosphere", "ggpubr"),
+                  "RNCan/BioSimClient_R", "geosphere", "ggpubr"),
   parameters = bindrows(
     defineParameter("carbonState", "numeric", c(0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), NA, NA,
                     paste("11-number vector for initial carbon conditions:",
