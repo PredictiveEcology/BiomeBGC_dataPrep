@@ -9,6 +9,7 @@ if (!testthat::is_testing()) {
 suppressPackageStartupMessages({
   library(data.table)
   library(terra)
+  library(SpaDES.core)
 })
 
 # BioSIM (RNCan/BioSimClient_R) imports J4R (CWFC-CCFB/J4R), which is
