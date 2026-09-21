@@ -258,7 +258,6 @@ if (window.hljs) {
 div.csl-bib-body { }
 div.csl-entry {
 clear: both;
-margin-bottom: 0em;
 }
 .hanging div.csl-entry {
 margin-left:2em;
@@ -505,7 +504,7 @@ The units of each variable are found here: <a href="https://raw.githubuserconten
 <tr class="even">
 <td align="left">siteConstants</td>
 <td align="left">numeric</td>
-<td align="left">1, NA, N….</td>
+<td align="left">NA, NA, ….</td>
 <td align="left">NA</td>
 <td align="left">NA</td>
 <td align="left">A vector with site information: 1: effective soil depth
@@ -516,16 +515,16 @@ annual rate of symbiotic+asymbiotic nitrogen fixation The non-na
 constants will be retrieved in various sources.</td>
 </tr>
 <tr class="odd">
-<td align="left">siteNames</td>
-<td align="left">character</td>
-<td align="left">site1</td>
+<td align="left">savePixelGroupMap</td>
+<td align="left">logical</td>
+<td align="left">FALSE</td>
 <td align="left">NA</td>
 <td align="left">NA</td>
-<td align="left">The names of the study sites.</td>
+<td align="left">If TRUE, the objects pixelGroupMap will be saved.</td>
 </tr>
 <tr class="even">
 <td align="left">waterState</td>
-<td align="left">numeric</td>
+<td align="left">vector</td>
 <td align="left">NA, 0.5</td>
 <td align="left">NA</td>
 <td align="left">NA</td>
@@ -723,7 +722,7 @@ needs to be the year of the data.</td>
 <td align="left"><a href="https://www.nature.com/articles/s41467-024-55606-y" class="uri">https://www.nature.com/articles/s41467-024-55606-y</a></td>
 </tr>
 <tr class="even">
-<td align="left">NFixationRates</td>
+<td align="left">NfixationRates</td>
 <td align="left">SpatRaster</td>
 <td align="left">Raster of annual rate of symbiotic + asymbiotic
 nitrogen fixation (kgN/m2/yr).</td>
@@ -825,7 +824,7 @@ the .ini files (one path per site/scenario).</td>
 </div>
 <div id="references" class="section level1 unnumbered">
 <h1 class="unnumbered">References</h1>
-<div id="refs" class="references csl-bib-body hanging-indent" entry-spacing="0">
+<div id="refs" class="references csl-bib-body hanging-indent">
 <div id="ref-fortin_web_2022" class="csl-entry">
 Fortin, Mathieu, Jean-François Lavoie, Jacques Régnière, and Rémi
 Saint-Amant. 2022. <span>“A <span>Web</span> <span>API</span> for
@@ -834,14 +833,13 @@ Weather Generation and Pest Development Simulation in <span>North</span>
 Software</em> 157 (November): 105476. <a href="https://doi.org/10.1016/j.envsoft.2022.105476">https://doi.org/10.1016/j.envsoft.2022.105476</a>.
 </div>
 <div id="ref-fortin_package_2022" class="csl-entry">
-Fortin, Mathieu, and Rémi Saint-Amant. 2022. <span>“Package
-<span>BioSIM</span>. <span>Version</span> 1.0.1.”</span> <a href="https://github.com/RNCan/BioSimClient_R">https://github.com/RNCan/BioSimClient_R</a>.
+Fortin, Mathieu, and Rémi Saint-Amant. 2022. <em>Package
+<span>BioSIM</span>. <span>Version</span> 1.0.1</em>. <a href="https://github.com/RNCan/BioSimClient_R">https://github.com/RNCan/BioSimClient_R</a>.
 </div>
 <div id="ref-geng_100_2025" class="csl-entry">
-Geng, Xiaoyuan, Juanxia He, Victoria Grima, Yefang Jiang, Maggi Tetreau,
-Stephen Crittenden, Simon Kiley, Albert. J. VandenBygaart, and Jason
-Vanrobaeys. 2025. <span>“100 m Soil Landscape Grids of
-<span>Canada</span>.”</span> <em>Scientific Data</em> 12 (1): 1178. <a href="https://doi.org/10.1038/s41597-025-05460-4">https://doi.org/10.1038/s41597-025-05460-4</a>.
+Geng, Xiaoyuan, Juanxia He, Victoria Grima, et al. 2025. <span>“100 m
+Soil Landscape Grids of <span>Canada</span>.”</span> <em>Scientific
+Data</em> 12 (1): 1178. <a href="https://doi.org/10.1038/s41597-025-05460-4">https://doi.org/10.1038/s41597-025-05460-4</a>.
 </div>
 <div id="ref-hermosilla_characterizing_2024" class="csl-entry">
 Hermosilla, Txomin, Michael A. Wulder, Joanne C. White, Nicholas C.
@@ -853,10 +851,10 @@ Remote Sensing Data.”</span> <em>Forest Ecology and Management</em> 572
 </div>
 <div id="ref-hessl_ecophysiological_2004" class="csl-entry">
 Hessl, Amy E., Cristina Milesi, Michael A. White, David L. Peterson, and
-Robert E. Keane. 2004. <span>“Ecophysiological Parameters for
-<span>Pacific</span> <span>Northwest</span> Trees.”</span> PNW-GTR-618.
-Portland, OR: U.S. Department of Agriculture, Forest Service, Pacific
-Northwest Research Station. <a href="https://doi.org/10.2737/PNW-GTR-618">https://doi.org/10.2737/PNW-GTR-618</a>.
+Robert E. Keane. 2004. <em>Ecophysiological Parameters for
+<span>Pacific</span> <span>Northwest</span> Trees.</em> PNW-GTR-618.
+U.S. Department of Agriculture, Forest Service, Pacific Northwest
+Research Station. <a href="https://doi.org/10.2737/PNW-GTR-618">https://doi.org/10.2737/PNW-GTR-618</a>.
 </div>
 <div id="ref-hollister_elevatr_2025" class="csl-entry">
 Hollister, Jeffrey, Tarak Shah, Jakub Nowosad, Alec L. Robitaille,
@@ -866,10 +864,10 @@ Marcus W. Beck, and Mike Johnson. 2025. <em>Elevatr: <span>Access</span>
 </div>
 <div id="ref-liu_north_2014" class="csl-entry">
 Liu, Shishi, Y. Wei, W. M. Post, R. B. Cook, K. Schaefer, and M. M.
-Thornton. 2014. <span>“North <span>American</span> <span>Carbon</span>
+Thornton. 2014. <em>North <span>American</span> <span>Carbon</span>
 <span>Program</span> (<span>NACP</span>)<span>NACP</span>
 <span>MsTMIP</span>: <span>Unified</span> <span>North</span>
-<span>American</span> <span>Soil</span> <span>Map</span>.”</span> ORNL
+<span>American</span> <span>Soil</span> <span>Map</span></em>. ORNL
 Distributed Active Archive Center. <a href="https://doi.org/10.3334/ORNLDAAC/1242">https://doi.org/10.3334/ORNLDAAC/1242</a>.
 </div>
 <div id="ref-mudryk_characterization_2015" class="csl-entry">
@@ -880,8 +878,7 @@ Mudryk, L. R., C. Derksen, P. J. Kushner, and R. Brown. 2015.
 (20): 8037–51. <a href="https://doi.org/10.1175/JCLI-D-15-0229.1">https://doi.org/10.1175/JCLI-D-15-0229.1</a>.
 </div>
 <div id="ref-reis_ely_global_2025" class="csl-entry">
-Reis Ely, Carla R., Steven S. Perakis, Cory C. Cleveland, Duncan N. L.
-Menge, Sasha C. Reed, Sarah A. Batterman, Timothy E. Crews, et al. 2025.
+Reis Ely, Carla R., Steven S. Perakis, Cory C. Cleveland, et al. 2025.
 <span>“A Global Dataset of Terrestrial Biological Nitrogen
 Fixation.”</span> <em>Scientific Data</em> 12 (1): 1362. <a href="https://doi.org/10.1038/s41597-025-05131-4">https://doi.org/10.1038/s41597-025-05131-4</a>.
 </div>
@@ -895,10 +892,9 @@ R. Nemani. 2000. <span>“Parameterization and <span>Sensitivity</span>
 <a href="https://doi.org/10.1175/1087-3562(2000)004%3C0003:PASAOT%3E2.0.CO;2">https://doi.org/10.1175/1087-3562(2000)004&lt;0003:PASAOT&gt;2.0.CO;2</a>.
 </div>
 <div id="ref-zhu_changing_2025" class="csl-entry">
-Zhu, Jianxing, Yanlong Jia, Guirui Yu, Qiufeng Wang, Nianpeng He, Zhi
-Chen, Honglin He, et al. 2025. <span>“Changing Patterns of Global
-Nitrogen Deposition Driven by Socio-Economic Development.”</span>
-<em>Nature Communications</em> 16 (1): 46. <a href="https://doi.org/10.1038/s41467-024-55606-y">https://doi.org/10.1038/s41467-024-55606-y</a>.
+Zhu, Jianxing, Yanlong Jia, Guirui Yu, et al. 2025. <span>“Changing
+Patterns of Global Nitrogen Deposition Driven by Socio-Economic
+Development.”</span> <em>Nature Communications</em> 16 (1): 46. <a href="https://doi.org/10.1038/s41467-024-55606-y">https://doi.org/10.1038/s41467-024-55606-y</a>.
 </div>
 </div>
 </div>
