@@ -1,0 +1,169 @@
+
+name: testthat-module
+
+on:
+  pull_request:
+    branches: [main, master, development]
+  push:
+    branches: [main, master, development]
+    paths:
+      - .github/workflows/testthat-module.yaml
+      - BiomeBGC_dataPrep.R
+      - R/**
+      - tests/**
+  workflow_dispatch:
+
+## Inlined from PredictiveEcology/actions/.github/workflows/testthat-module.yaml@main
+## (rather than `uses:`) so a step can be inserted between "Install module package
+## dependencies" and "Run tests". BioSIM (RNCan/BioSimClient_R) Imports J4R
+## (CWFC-CCFB/J4R), which is GitHub-only; pak's parallel "identify-and-defer" install
+## strategy for Require::Require() can start building BioSIM before J4R has finished
+## installing, leaving BioSIM -- and anything depending on it (LandR, then pemisc) --
+## missing even though J4R itself lands successfully. Because BioSIM is a `reqdPkgs`
+## entry, SpaDES.core::convertToPackage() writes it into the generated package's
+## DESCRIPTION as an Import, so a missing BioSIM fails "Run tests" with
+## `The package "BioSIM" is required.` before tests/testthat/setup.R is ever sourced --
+## too late for a retry there to help. See PredictiveEcology/BiomeBGC_dataPrep#7.
+##
+## This is a pak install-ordering race, not a missing system dependency: J4R and
+## BioSIM are pure-R packages with no compiled code to build (J4R: Imports utils,
+## methods only; BioSIM: Imports J4R only; both declare "Java 8" only as a runtime
+## SystemRequirements for actually using the client). So a Java/JDK sysdeps step in
+## setup-r would not fix this.
+##
+## Known divergence: this duplicates the reusable workflow's steps, so future changes
+## to PredictiveEcology/actions's testthat-module.yaml (system deps, action pins, etc.)
+## will not automatically propagate here. Consider upstreaming a retry hook to the
+## shared workflow/install-SpaDES action instead (see PR #7 discussion).
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-reusable
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions: {}
+
+jobs:
+  testthat-module:
+    if: ${{ !contains(github.event.head_commit.message, '[skip-ci]') }}
+    name: Test module
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+      MODULE: BiomeBGC_dataPrep
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - uses: PredictiveEcology/actions/install-spatial-deps@main
+
+      - name: Install other system dependencies
+        shell: bash
+        env:
+          DEBIAN_FRONTEND: noninteractive
+        run: |
+          set -euo pipefail
+          retry() {
+            local n
+            for n in 1 2 3; do
+              if timeout --kill-after=60s "$1" bash -c "$2"; then return 0; fi
+              echo "::warning::'$2' failed or timed out (attempt $n/3); retrying..."
+              sleep $((n * 15))
+            done
+            echo "::error::'$2' still failing after 3 attempts"
+            return 1
+          }
+          printf 'Acquire::Retries "5";\nAcquire::http::Timeout "30";\nAcquire::https::Timeout "30";\n' \
+            | sudo tee /etc/apt/apt.conf.d/99-ci-timeouts > /dev/null
+          retry 5m  "sudo -E apt-get update -y"
+          retry 10m "sudo -E NEEDRESTART_MODE=a apt-get install -y --no-install-recommends \
+                       libcurl4-openssl-dev libgit2-dev libglpk-dev libmagick++-dev \
+                       libxml2-dev python3-gdal"
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: release
+          use-public-rspm: true
+          Ncpus: 2
+
+      - uses: PredictiveEcology/actions/install-Require@main
+
+      - uses: PredictiveEcology/actions/install-SpaDES@main
+
+      - name: Install test packages
+        shell: Rscript {0}
+        run: |
+          Require::Require(c("covr", "pkgload", "roxygen2", "testthat", "withr"),
+                           require = FALSE)
+
+      - name: Install module package dependencies
+        shell: Rscript {0}
+        run: |
+          m <- Sys.getenv("MODULE")
+          pkgs <- SpaDES.core::packages(modules = m, paths = "..")
+          Require::Require(pkgs[[1]])
+
+      ## Repair step: retry any GitHub-only package left uninstalled by pak's
+      ## parallel install race (see comment block above and
+      ## PredictiveEcology/BiomeBGC_dataPrep#7). remotes installs serially and
+      ## follows each package's Remotes: DESCRIPTION field, so retrying here, in
+      ## dependency order, fixes whatever the batch install dropped -- before
+      ## convertToPackage()/test_local() need BioSIM to be loadable.
+      - name: Retry GitHub-only packages dropped by pak's install race
+        shell: Rscript {0}
+        run: |
+          need <- function(pkg) !requireNamespace(pkg, quietly = TRUE)
+          if (need("J4R") || need("BioSIM") || need("pemisc") || need("LandR")) {
+            if (!requireNamespace("remotes", quietly = TRUE)) install.packages("remotes")
+            if (need("J4R"))    remotes::install_github("CWFC-CCFB/J4R")
+            if (need("BioSIM")) remotes::install_github("RNCan/BioSimClient_R")
+            if (need("pemisc")) remotes::install_github("PredictiveEcology/pemisc@development")
+            if (need("LandR"))  remotes::install_github("PredictiveEcology/LandR@development")
+          }
+
+      - name: Check for tests
+        id: has_tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          if compgen -G "tests/testthat/test*.R" > /dev/null; then
+            echo "found=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "found=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No test files under tests/testthat/; nothing to run."
+            echo "### No tests" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`${MODULE}\` has no files matching \`tests/testthat/test*.R\`." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Run tests
+        if: ${{ steps.has_tests.outputs.found == 'true' }}
+        shell: Rscript {0}
+        run: |
+          m <- Sys.getenv("MODULE")
+          pkg <- SpaDES.core::convertToPackage(m, path = "..", buildDocuments = TRUE,
+                                               destinationPath = tempfile("testthat-module"))
+          res <- testthat::test_local(pkg, reporter = "summary", stop_on_failure = FALSE)
+          df <- as.data.frame(res)
+          bad <- sum(df$failed) + sum(df$error)
+          if (bad > 0) stop(bad, " test failure(s) in ", m)
+
+      - name: Coverage summary
+        if: ${{ steps.has_tests.outputs.found == 'true' }}
+        shell: Rscript {0}
+        run: |
+          m <- Sys.getenv("MODULE")
+          cov <- try(SpaDES.core::moduleCoverage(m, modulePath = ".."), silent = TRUE)
+          out <- Sys.getenv("GITHUB_STEP_SUMMARY")
+          if (inherits(cov, "try-error")) {
+            cat("### Coverage\n\nCould not be measured:\n\n```\n",
+                as.character(cov), "```\n", sep = "", file = out, append = TRUE)
+          } else {
+            df <- as.data.frame(cov)
+            per <- tapply(df$value, df$filename, function(x) round(100 * mean(x > 0), 1))
+            cat("### Coverage\n\n**", round(covr::percent_coverage(cov), 1), "%** overall\n\n",
+                "| file | coverage |\n|---|---|\n",
+                paste0("| `", names(per), "` | ", per, "% |", collapse = "\n"),
+                "\n", sep = "", file = out, append = TRUE)
+          }

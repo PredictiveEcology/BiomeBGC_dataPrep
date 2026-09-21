@@ -7,7 +7,7 @@
 # single mock species, built from the real fixture .epc file so values are
 # realistic rather than arbitrary.
 .mockEcophysiologicalConstants <- function(speciesId = "Pice_gla") {
-  epc <- epcRead(file.path(testdataPath, "epc", "enf.epc"))
+  epc <- epcRead(testthat::test_path("testdata", "epc", "enf.epc"))
   epcRow <- as.list(setNames(epc[["value"]], make.names(epc[["description"]])))
   data.frame(
     speciesId = speciesId,
