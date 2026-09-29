@@ -115,14 +115,14 @@ prepSpinupIni_worker <- function(pixelGroup_i, iniTemplate, pixelGroupParameters
   }
   
   # Set RAMP_NDEP section
-  if(userParams$NDeposition[1] == 1 & is.na(userParams$NDeposition[2])){
+  if(userParams$NDepositionLevel[1] == 1 & is.na(userParams$NDepositionLevel[2])){
     Ndeposition2 <- parameters$NdepositionT2
     spinupIni <- iniSet(spinupIni, "RAMP_NDEP", c(2, 3),
                         c(Ndep_yr2,
                           format(Ndeposition2, scientific = FALSE, trim = TRUE))
     )
-  } else if (userParams$NDeposition[1] == 1 & !is.na(userParams$NDeposition[2])){
-    spinupIni <- iniSet(spinupIni, "RAMP_NDEP", c(2,3), userParams$NDeposition[c(2,3)])
+  } else if (userParams$NDepositionLevel[1] == 1 & !is.na(userParams$NDepositionLevel[2])){
+    spinupIni <- iniSet(spinupIni, "RAMP_NDEP", c(2,3), userParams$NDepositionLevel[c(2,3)])
   }
   
   # Set EPC_FILE section
