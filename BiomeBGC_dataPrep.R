@@ -312,7 +312,7 @@ preparePixelGroups <- function(sim) {
       # If points falls in a non-treed pixel, find the closest pixel with a leading species
       i <- 1
       dominantSpeciesRast <- sim$dominantSpecies
-      while (any(is.na(dominantSpecies[,2])) | i < 3){
+      while (any(is.na(dominantSpecies[,2])) & i < 3){
         message("The study area falls in a non-treed pixel, using the leading species of close pixels.")
         message("Using distance: ", i, "cells.")
         dominantSpeciesRast <- focal(dominantSpeciesRast, w = 3, fun = "modal", na.policy = "only")
