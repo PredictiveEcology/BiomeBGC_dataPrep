@@ -468,7 +468,11 @@ concentration trajectories and meteorological data. Either ‘RCP45’ or
 <td align="left">40</td>
 <td align="left">NA</td>
 <td align="left">NA</td>
-<td align="left">The number of years used for the spinup.</td>
+<td align="left">The number of years used for the spinup, i.e. the
+length of the historical met record the spinup cycles through to reach
+equilibrium. This controls only the spinup period (ending the year
+before start(sim)); it no longer extends the main simulation’s date
+range, which always spans start(sim) to end(sim).</td>
 </tr>
 <tr class="odd">
 <td align="left">NDepositionLevel</td>
