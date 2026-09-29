@@ -60,7 +60,11 @@ defineModule(sim, list(
                     paste("The maximum number of simulation for a spinup run.")
     ),
     defineParameter("metSpinupYears", "numeric", 40, NA, NA,
-                    paste("The number of years used for the spinup.")
+                    paste("The number of years used for the spinup,",
+                          "i.e. the length of the historical met record the spinup cycles",
+                          "through to reach equilibrium. This controls only the spinup period",
+                          "(ending the year before start(sim)); it no longer extends the main",
+                          "simulation's date range, which always spans start(sim) to end(sim).")
     ),
     defineParameter("NDepositionLevel", "numeric", c(1, NA, NA), NA, NA,
                     paste("A 3-number vector:",
@@ -356,11 +360,17 @@ prepareSpinupIni <- function(sim) {
   message("Creating ini files for the spinup.")
   iniTemplate <- iniRead(system.file("inputs/ini/template.ini", package = "BiomeBGCR"))
   
+  # Calendar year of the first year of the spinup met record (matches the
+  # "_spinup.mtc43" file written by prepClimateSinglePolygon()). Computed once
+  # and reused below for both TIME_DEFINE and the CO2 lookup so the two stay
+  # in sync.
+  spinupFirstYear <- start(sim) - P(sim)$metSpinupYears
+  
   # set sections that are shared across all pixelGroups
   ## Set TIME_DEFINE section
   iniTemplate <- iniSet(iniTemplate, "TIME_DEFINE", 1, P(sim)$metSpinupYears) # number of year in the metdata
   iniTemplate <- iniSet(iniTemplate, "TIME_DEFINE", 2, P(sim)$metSpinupYears) # number of simulation years
-  iniTemplate <- iniSet(iniTemplate, "TIME_DEFINE", 3, start(sim) - P(sim)$metSpinupYears) #first simulation year
+  iniTemplate <- iniSet(iniTemplate, "TIME_DEFINE", 3, spinupFirstYear) #first simulation year, matches the spinup met file's own calendar year
   iniTemplate <- iniSet(iniTemplate, "TIME_DEFINE", 4, 1) # 1 = spinup, 0 = normal simulation
   iniTemplate <- iniSet(iniTemplate, "TIME_DEFINE", 5, P(sim)$maxSpinupYears) # max spinup years
   
@@ -368,9 +378,10 @@ prepareSpinupIni <- function(sim) {
   iniTemplate <- iniSet(iniTemplate, "CLIM_CHANGE", c(1:5), P(sim)$climateChangeOptions)
   
   ## Set CO2_CONTROL section
-  # TODO: make sure that co2 is always constant for the spinup. If so, which year?
+  # Constant CO2 during spinup, using the concentration at the beginning of the
+  # spinup period (the spinup met file's first calendar year).
   iniTemplate <- iniSet(iniTemplate, "CO2_CONTROL", 1, 0) # Constant co2 concentration during spinup
-  iniTemplate <- iniSet(iniTemplate, "CO2_CONTROL", 2, sim$CO2concentration[sim$CO2concentration$year == (start(sim)-P(sim)$metSpinupYears), "co2_ppm"])
+  iniTemplate <- iniSet(iniTemplate, "CO2_CONTROL", 2, sim$CO2concentration[sim$CO2concentration$year == spinupFirstYear, "co2_ppm"])
   
   # Set C_STATE section
   iniTemplate <- iniSet(iniTemplate, "C_STATE", 1:11, P(sim)$carbonState)
@@ -431,11 +442,20 @@ prepareIni <- function(sim) {
   message("Creating ini files for the main simulation.")
   # Cache some objects to speedup the loop
   met_suffix <- paste0("_", P(sim)$climModel, P(sim)$co2scenario, "_",
-                       start(sim) - P(sim)$metSpinupYears, end(sim), ".mtc43")
+                       start(sim), end(sim), ".mtc43")
   pixGroupParams <- sim$pixelGroupParameters
   nPixelGroups <- nrow(sim$pixelGroupParameters)
-  nyear <- end(sim) - start(sim) + 1 + P(sim)$metSpinupYears
-  firstyear <- start(sim) - P(sim)$metSpinupYears
+  nyear <- end(sim) - start(sim) + 1
+  firstyear <- start(sim)
+  # NOTE: Biome-BGC's get_co2() (src/bgclib/get_co2.c) looks up CO2 by matching
+  # the calendar year label in the CO2 file's year column against
+  # ctrl.simstartyear + simyr (src/bgclib/bgc.c ~L400) -- i.e. by calendar
+  # year, not by file position/row offset relative to TIME_DEFINE's first
+  # simulation year. The wider start(sim) - metSpinupYears .. end(sim) CO2
+  # file/table (needed for the spinup's CO2 lookup, see prepareSpinupIni())
+  # can therefore be reused as-is for the main run: Biome-BGC will simply
+  # ignore the extra pre-start(sim) rows it doesn't need. No separate,
+  # re-sliced start(sim)-end(sim) CO2 file is required.
   co2fileName <- paste("co2",
                        start(sim)-P(sim)$metSpinupYears,
                        end(sim),

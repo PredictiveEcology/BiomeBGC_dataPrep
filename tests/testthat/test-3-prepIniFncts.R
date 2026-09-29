@@ -34,7 +34,7 @@ test_that("prepSpinupIni_worker() fills SITE/MET_INPUT/EPC_FILE from pixelGroupP
   pixelGroupParameters <- makePixelGroupParameters()
   userParams <- list(
     siteConstants = rep(NA_real_, 9),
-    NDeposition = c(0, NA),
+    NDepositionLevel = c(0, NA, NA),
     waterState = NA_real_
   )
 
@@ -60,7 +60,7 @@ test_that("prepSpinupIni_worker() prefers non-NA userParams over pixelGroupParam
   pixelGroupParameters <- makePixelGroupParameters()
   userParams <- list(
     siteConstants = c(2.0, NA, NA, NA, 999, NA, NA, NA, NA),
-    NDeposition = c(0, NA),
+    NDepositionLevel = c(0, NA, NA),
     waterState = 5
   )
 
@@ -87,7 +87,7 @@ test_that("prepSpinupIni() builds one named ini per pixel group", {
   pixelGroupParameters <- makePixelGroupParameters()
   userParams <- list(
     siteConstants = rep(NA_real_, 9),
-    NDeposition = c(0, NA),
+    NDepositionLevel = c(0, NA, NA),
     waterState = NA_real_
   )
 
