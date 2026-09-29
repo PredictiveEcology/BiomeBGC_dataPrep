@@ -262,4 +262,17 @@ test_that("prepClimate() downloads and writes spinup + full-run meteorological d
   writtenFiles <- list.files(file.path(destinationPath, "metdata"))
   expect_true(any(grepl("_spinup[.]mtc43$", writtenFiles)))
   expect_true(any(grepl("rcm4rcp45.*[.]mtc43$", writtenFiles)))
+
+  # the main-run met file now covers only simStartYear-simEndYear (2020-2020),
+  # not the spinup years, so its name should not contain the spinup start year
+  mainRunFile <- writtenFiles[grepl("rcm4rcp45.*[.]mtc43$", writtenFiles)]
+  expect_true(any(grepl("20202020[.]mtc43$", mainRunFile)))
+  expect_false(any(grepl("2018", mainRunFile))) # spinup start year (2020 - 2 spinup years)
+
+  # spinup met file has exactly the 2 spinup years; main-run met file has
+  # exactly the 1 simulated year (previously it redundantly included spinup years too)
+  spinupFile <- file.path(destinationPath, "metdata", writtenFiles[grepl("_spinup[.]mtc43$", writtenFiles)])
+  mainFile <- file.path(destinationPath, "metdata", mainRunFile)
+  expect_equal(length(readLines(spinupFile)) - 4, 365 * 2) # header lines + 1 per day
+  expect_equal(length(readLines(mainFile)) - 4, 365 * 1)
 })

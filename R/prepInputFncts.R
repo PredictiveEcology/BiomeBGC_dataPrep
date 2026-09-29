@@ -260,7 +260,7 @@ prepClimate <- function(climatePolygons, simStartYear, simEndYear, nSpinupYears,
       climatePolygon = climatePolygons[climatePolygons$climatePolygonId == climatePolygon_i, ],
       id = climatePolygon_i,
       firstYear = firstYear,
-      simStartYear = simEndYear,
+      simStartYear = simStartYear,
       simEndYear = simEndYear,
       scenario,
       climModel,
@@ -345,21 +345,23 @@ prepClimateSinglePolygon <- function(climatePolygon, id, firstYear, simStartYear
     dataSource = paste(climModel, scenario, sep = ": ")
   )
   
-  # Met data for main simulation
+  # Met data for main simulation: only simStartYear through simEndYear.
+  # The spinup years are covered separately by the spinup met file above;
+  # the main run's ini starts exactly at simStartYear (see prepareIni()).
   fileName <- tolower(paste0(
     id,
     "_",
     climModel,
     scenario,
     "_",
-    firstYear,
+    simStartYear,
     simEndYear,
     ".mtc43"
   ))
   fileName <- file.path(destinationPath, "metdata", fileName)
   
   metWrite(
-    metData = climate[, c(1:10)],
+    metData = climate[!climate$spinup, c(1:10)],
     fileName = fileName,
     siteName  = paste0("Climate Polygon: ", id),
     dataSource = paste(climModel, scenario, sep = ": ")

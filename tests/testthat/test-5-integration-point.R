@@ -97,4 +97,25 @@ test_that("the module runs end-to-end for a point studyArea with fully mocked in
     BiomeBGCR::iniGet(out$bbgcSpinup.ini[[pixelGroupId]], "EPC_FILE", 1),
     file.path("inputs", "epc", "piceaglauca.epc")
   )
+
+  # Main run starts exactly at start(sim) and does not re-simulate the
+  # spinup period; the spinup ini remains anchored to its own met years.
+  # start()/end() return values carry a "unit" attribute, so strip it with
+  # as.numeric() on both sides before comparing.
+  simStart <- as.numeric(SpaDES.core::start(sim))
+  simEnd <- as.numeric(SpaDES.core::end(sim))
+  metSpinupYears <- mocks$metSpinupYears
+
+  expect_equal(
+    as.numeric(BiomeBGCR::iniGet(out$bbgc.ini[[pixelGroupId]], "TIME_DEFINE", 3)),
+    simStart
+  )
+  expect_equal(
+    as.numeric(BiomeBGCR::iniGet(out$bbgc.ini[[pixelGroupId]], "TIME_DEFINE", 2)),
+    simEnd - simStart + 1
+  )
+  expect_equal(
+    as.numeric(BiomeBGCR::iniGet(out$bbgcSpinup.ini[[pixelGroupId]], "TIME_DEFINE", 3)),
+    simStart - metSpinupYears
+  )
 })
