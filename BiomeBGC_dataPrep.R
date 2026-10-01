@@ -195,7 +195,7 @@ defineModule(sim, list(
     expectsInput("soilTextures", "SpatRaster",
                  desc = paste(
                    "A raster stack with layers representing the % of 'Sand', 'Silt', and 'Clay'.",
-                   "The across-layers sum needs to equal to 1 for each pixels."
+                   "The across-layers sum needs to equal to 100 for each pixels."
                  ),
                  sourceURL = "https://sis.agr.gc.ca/cansis/nsdb/psm/index.html"
     ),

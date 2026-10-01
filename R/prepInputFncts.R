@@ -77,7 +77,7 @@ prepSoilTexture <- function(destinationPath, to, treedPixels){
   sand15_30 <- fillMissingValues(sand15_30, treedPixels, "Sand content 15-30 cm") |> Cache()
   sand15_30 <- maskTo(sand15_30, to) |> Cache()
   
-  sand <- round((5/30) * sand0_5 + (10/30) * sand5_15 + (15/30) * sand15_30, digit = -1)
+  sand <- (5/30) * sand0_5 + (10/30) * sand5_15 + (15/30) * sand15_30
   
   clay0_5 <- prepInputs(
     url = "https://sis.agr.gc.ca/cansis/nsdb/psm/Clay/Clay_X0_5_cm_100m1980-2000v1.tif",
@@ -112,9 +112,15 @@ prepSoilTexture <- function(destinationPath, to, treedPixels){
   clay15_30 <- fillMissingValues(clay15_30, treedPixels, "Clay content 15-30 cm") |> Cache()
   clay15_30 <- maskTo(clay15_30, to) |> Cache()
   
-  clay <- round((5/30) * clay0_5 + (10/30) * clay5_15 + (15/30) * clay15_30, digit = -1)
+  clay <- (5/30) * clay0_5 + (10/30) * clay5_15 + (15/30) * clay15_30
   
-  silt <- 100 - (sand + clay)
+  # Round sand/clay together (to the nearest 10%) only after both are on a
+  # common, already-averaged scale, then derive silt as the remainder so the
+  # triple always sums to 100. 
+  sand <- round(sand, digits = -1)
+  clay <- round(clay, digits = -1)
+  silt <- pmax(100 - (sand + clay), 0)
+  
   soilTexture <- c(sand, silt, clay)
   names(soilTexture) <- c("sand", "silt", "clay")
   return(soilTexture)
