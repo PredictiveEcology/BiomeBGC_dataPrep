@@ -31,7 +31,7 @@ prepSpinupIni_worker <- function(pixelGroup_i, iniTemplate, pixelGroupParameters
   parameters <- pixelGroupParameters[pixelGroup_i, ]
   
   ## Set MET_INPUT section
-  fileName <- paste0(parameters$climatePolygon, "_spinup.mtc43")
+  fileName <- tolower(paste0(parameters$climatePolygon, "_spinup.mtc43"))
   spinupIni <- iniSet(spinupIni,
                       "MET_INPUT",
                       1,
