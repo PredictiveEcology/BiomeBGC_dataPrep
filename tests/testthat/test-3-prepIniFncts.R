@@ -50,7 +50,7 @@ test_that("prepSpinupIni_worker() fills SITE/MET_INPUT/EPC_FILE from pixelGroupP
 
   expect_equal(iniGet(ini1, "SITE", 1), "1.2")     # soil depth from pixelGroupParameters
   expect_equal(iniGet(ini1, "SITE", 5), "500")     # elevation
-  expect_equal(iniGet(ini1, "MET_INPUT", 1), file.path("inputs", "metdata", "polyA_spinup.mtc43"))
+  expect_equal(iniGet(ini1, "MET_INPUT", 1), file.path("inputs", "metdata", "polya_spinup.mtc43"))
   expect_equal(iniGet(ini1, "EPC_FILE", 1), file.path("inputs", "epc", "picea_glauca.epc"))
   expect_equal(iniGet(ini1, "RESTART", 5), file.path("inputs", "restart", "1.restart"))
 })
@@ -98,7 +98,7 @@ test_that("prepSpinupIni() builds one named ini per pixel group", {
   expect_equal(names(allIni), as.character(pixelGroupParameters$pixelGroup))
   expect_equal(
     iniGet(allIni[["2"]], "MET_INPUT", 1),
-    file.path("inputs", "metdata", "polyB_spinup.mtc43")
+    file.path("inputs", "metdata", "polyb_spinup.mtc43")
   )
   expect_equal(
     iniGet(allIni[["2"]], "EPC_FILE", 1),
