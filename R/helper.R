@@ -326,14 +326,6 @@ metWrite <- function(metData, fileName, siteName = "XXXX", dataSource = "XXXX"){
 
 #### CO2 helper function ####
 
-# reads co2 concentration data file
-# currently not used
-CO2Read <- function(fileName){
-  fileName <- "~/repos/BiomeBGCR/inst/inputs/co2/co2.txt"
-  co2Data <- read.table(fileName, col.names = c("year", "concentration"))
-  return(co2Data)
-}
-
 # writes co2 concentration data file
 CO2write <- function(co2Data, fileName){
   write.table(co2Data, 
