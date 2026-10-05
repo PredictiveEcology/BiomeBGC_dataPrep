@@ -382,12 +382,100 @@ display: none;
 
 <div id="overview" class="section level1">
 <h1>Overview</h1>
-<p>Retrieves and prepares the input to run Biome-BGC version 4.2 through
-the module <code>BiomeBGC_core</code>.</p>
+<p>Biome-BGC is an ecophysiological model that simulates carbon,
+nitrogen, and water cycling in forest ecosystems. Before it can be run,
+Biome-BGC needs a set of site-level inputs (e.g., meteorology, soil
+properties, species parameters) assembled into the specific
+<code>.ini</code> control files that the model reads.
+<code>BiomeBGC_dataPrep</code> retrieves and prepares those inputs for
+one or more sites (or polygons) and writes the <code>.ini</code> files
+needed to run Biome-BGC version 4.2 through the module
+<code>BiomeBGC_core</code>.</p>
+<p>Biome-BGC simulations happen in two stages, and this module prepares
+inputs for both:</p>
+<ul>
+<li>A <strong>spin-up</strong> run, which repeats historical climate
+conditions over many years until the simulated carbon and nitrogen pools
+reach a steady state. This gives the main simulation a realistic
+starting point instead of an arbitrary one.</li>
+<li>The <strong>main</strong> simulation run, which uses the spin-up’s
+final state as its starting point and runs over the user’s simulation
+period.</li>
+</ul>
+<p>The user only needs to supply a study area (as one or more polygons,
+or points representing site locations); all other inputs have
+Canada-wide defaults that the module will download and process
+automatically if not supplied. Users can override any default by
+supplying their own data for that input (see <a href="#input-data">Input
+data</a> below).</p>
+</div>
+<div id="set-up" class="section level1">
+<h1>Set up</h1>
+<p>A minimal simulation needs a <code>studyArea</code>, plus a
+<code>rasterToMatch</code> if <code>studyArea</code> is a polygon
+(points do not require one, since each point is treated as its own
+site). All other inputs fall back to defaults described below.</p>
+<pre class="r"><code>library(SpaDES.core)
+
+mySim &lt;- simInit(
+  times = list(start = 2011, end = 2011),
+  params = list(
+    BiomeBGC_dataPrep = list(
+      co2scenario = &quot;RCP45&quot;,
+      metSpinupYears = 40
+    )
+  ),
+  modules = &quot;BiomeBGC_dataPrep&quot;,
+  objects = list(
+    studyArea = studyArea, # a SpatVector of polygons or points
+    rasterToMatch = rasterToMatch # required only if studyArea is a polygon
+  ),
+  paths = list(
+    modulePath = &quot;..&quot;,
+    inputPath = &quot;inputs&quot;,
+    outputPath = &quot;outputs&quot;
+  )
+)
+
+mySimOut &lt;- spades(mySim)</code></pre>
 </div>
 <div id="parameters" class="section level1">
 <h1>Parameters</h1>
-<p>Provide a summary of user-visible parameters.</p>
+<p>The module’s parameters fall into a few groups:</p>
+<ul>
+<li><strong>Spin-up controls</strong> — <code>maxSpinupYears</code> (an
+upper limit on the number of simulated spin-up years) and
+<code>metSpinupYears</code> (how many years of historical meteorological
+data are recycled during spin-up).</li>
+<li><strong>Climate-change scenario</strong> — <code>climModel</code>
+(which climate model to use: <code>&quot;RCM4&quot;</code>, <code>&quot;GCM4&quot;</code>,
+or <code>&quot;Hadley&quot;</code>), <code>co2scenario</code>
+(<code>&quot;RCP45&quot;</code> or <code>&quot;RCP85&quot;</code>, i.e. a lower- or
+higher-emissions future pathway), and <code>climateChangeOptions</code>
+(manual offsets/multipliers applied to future temperature,
+precipitation, humidity, and solar radiation, for sensitivity
+analyses).</li>
+<li><strong>Initial model state</strong> — <code>carbonState</code>,
+<code>nitrogenState</code>, and <code>waterState</code> set the starting
+carbon, nitrogen, and water pools for the spin-up;
+<code>siteConstants</code> holds fixed site characteristics (soil depth,
+soil texture, elevation, latitude, albedo, N deposition, N fixation)
+that are otherwise filled in from the input data described below;
+<code>NDepositionLevel</code> controls whether atmospheric nitrogen
+deposition is held constant or allowed to vary with the CO2
+scenario.</li>
+<li><strong>Output control</strong> — <code>outputVariables</code>
+(which daily Biome-BGC output variables to request) and
+<code>savePixelGroupMap</code> (whether to keep the raster of pixel
+groups as a saved output).</li>
+<li><strong>Standard SpaDES parameters</strong> — the
+<code>.plots</code>, <code>.plotInitialTime</code>,
+<code>.plotInterval</code>, <code>.saveInitialTime</code>,
+<code>.saveInterval</code>, <code>.studyAreaName</code>,
+<code>.seed</code>, and <code>.useCache</code> parameters follow the
+usual SpaDES conventions for controlling plotting, saving, and caching,
+shared across all SpaDES modules.</li>
+</ul>
 <table>
 <colgroup>
 <col width="3%" />
@@ -613,37 +701,75 @@ hash of the studyarea obtained using
 </div>
 <div id="events" class="section level1">
 <h1>Events</h1>
-<p>Describe what happens for each event type.</p>
+<p>The module has two event types.</p>
+<div id="init" class="section level2">
+<h2>Init</h2>
+<p>The <code>init</code> event does the main work of the module, in
+three steps:</p>
+<ol style="list-style-type: decimal">
+<li><strong><code>preparePixelGroups</code></strong> groups pixels of
+the study area into “pixel groups” — sets of pixels that share the same
+climate polygon, dominant species, soil properties, and elevation, and
+so can be simulated with a single Biome-BGC run. This keeps the number
+of simulations manageable for large or spatially heterogeneous study
+areas. The grouping is stored in <code>pixelGroupMap</code> and
+summarized in <code>pixelGroupParameters</code>.</li>
+<li><strong><code>prepareSpinupIni</code></strong> writes one spin-up
+<code>.ini</code> file per pixel group (and per scenario, where
+relevant), including the recycled historical meteorology, initial
+carbon/ nitrogen/water state, and the requested length of the
+spin-up.</li>
+<li><strong><code>prepareIni</code></strong> writes the corresponding
+main-run <code>.ini</code> files, carrying over the spin-up’s restart
+state and substituting in the main simulation’s meteorological data,
+simulation period, and CO2 concentration.</li>
+</ol>
+</div>
 <div id="plotting" class="section level2">
 <h2>Plotting</h2>
-<p>Write what is plotted.</p>
+<p>If plotting is enabled (via the standard
+<code>.plots</code>/<code>.plotInitialTime</code>/<code>.plotInterval</code>
+parameters), a <code>plot</code> event produces two figures, saved as
+PNG files under <code>outputPath(sim)/BiomeBGC_figures/</code>:</p>
+<ul>
+<li><code>climatePlot</code> — a time series of annual temperature and
+precipitation for each climate polygon in the study area.</li>
+<li><code>climatePolygonMap</code> — a map of the climate polygons,
+colour-coded by polygon ID, so the user can see how the climate data
+were spatially partitioned.</li>
+</ul>
 </div>
 <div id="saving" class="section level2">
 <h2>Saving</h2>
-<p>Write what is saved.</p>
+<p>No additional objects are saved by default beyond what is controlled
+by the standard SpaDES
+<code>.saveInitialTime</code>/<code>.saveInterval</code> parameters. If
+<code>savePixelGroupMap = TRUE</code>, the <code>pixelGroupMap</code>
+raster is kept as a saved output rather than being discarded after
+use.</p>
 </div>
 </div>
 <div id="data-dependencies" class="section level1">
 <h1>Data dependencies</h1>
 <div id="input-data" class="section level2">
 <h2>Input data</h2>
-<p>Input data are parameters driving Biome-BGC. The default input data
-are from various sources, scale, and precision level. We calibrated
-default ecophysiological constants for Canadian tree species by
-aggregating data from <span class="citation">White et al. (2000)</span>,
-<span class="citation">Hessl et al. (2004)</span>, and TRY plant Trait
-database [kattge_try_2020]. Meteorological data are retrieved through
-the BioSIM package <span class="citation">Fortin and Saint-Amant
-(2022)</span>. Site-level parameters are extracted from the various
-sources:</p>
+<p>Input data are the parameters driving Biome-BGC. The default input
+data are from various sources, scales, and precision levels. We
+calibrated default ecophysiological constants for Canadian tree species
+by aggregating data from <span class="citation">White et al.
+(2000)</span>, <span class="citation">Hessl et al. (2004)</span>, and
+the TRY plant trait database <span class="citation">(Kattge et al.
+2020)</span>. Meteorological data are retrieved through the BioSIM
+package <span class="citation">Fortin and Saint-Amant (2022)</span>.
+Site-level parameters are extracted from the following sources:</p>
 <ul>
 <li>Dominant species: NTEMS dominant species layers for the 1st year of
 the simulation <span class="citation">(Hermosilla et al.
 2024)</span>.</li>
-<li>Elevation: AWS Open Data Terrain Tiles extracted with the elevatr
-package <span class="citation">(Hollister et al. 2025)</span>.</li>
-<li>N deposition: Extracted from <span class="citation">Zhu et al.
-(2025)</span>.</li>
+<li>Elevation: AWS Open Data Terrain Tiles extracted with the
+<code>elevatr</code> package <span class="citation">(Hollister et al.
+2025)</span>.</li>
+<li>N deposition: Extracted from the ADAGIO project <span class="citation">Robichaud et al. (2026)</span>.</li>
 <li>N fixation rate: Extracted from <span class="citation">Reis Ely et
 al. (2025)</span>.</li>
 <li>Snow pack water content: Canada monthly snow water equivalent (SWE)
@@ -651,7 +777,29 @@ for January <span class="citation">(Mudryk et al. 2015)</span>.</li>
 <li>Soil depth: The maximum soil depth layer of NACP MsTMIP: Unified
 North American Soil Map <span class="citation">(Liu et al.
 2014)</span>.</li>
-<li>Soil texture: Soil Landscape Grids of Canada <span class="citation">(Geng et al. 2025)</span>.</li>
+<li>Soil texture (sand/silt/clay percentages): Soil Landscape Grids of
+Canada <span class="citation">(Geng et al. 2025)</span>.</li>
+</ul>
+<p>The only input the user must supply is <code>studyArea</code>, one or
+more polygons or points defining the area(s) or site(s) to simulate. All
+other inputs below have Canada-wide defaults that are downloaded and
+processed automatically if not supplied:</p>
+<ul>
+<li><code>climatePolygons</code> — polygons of climate zones in which
+Biome-BGC can be assumed to see homogeneous weather (default: Canadian
+ecodistricts).</li>
+<li><code>CO2concentration</code> — a table of atmospheric CO2
+concentration (ppm) by year, consistent with the chosen
+<code>co2scenario</code>.</li>
+<li><code>ecophysiologicalConstants</code> — species-specific
+ecophysiological constants required by Biome-BGC.</li>
+<li><code>rasterToMatch</code> — a template raster defining the extent,
+resolution, and projection to use; required if <code>studyArea</code> is
+a polygon (rather than points).</li>
+<li><code>soilTextures</code> — the sand/silt/clay percentage layers
+(see above).</li>
+<li><code>sppEquiv</code> — a species-equivalency table linking the
+dominant species map to the ecophysiological constants table.</li>
 </ul>
 <table>
 <colgroup>
@@ -723,7 +871,7 @@ and Tday, <code>cm</code> for prcp, <code>Pa</code> for VPD,
 one for N deposition at the start, of the simulation and a second for N
 deposition at another timestep. The layer name of the second raster
 needs to be the year of the data.</td>
-<td align="left"><a href="https://www.nature.com/articles/s41467-024-55606-y" class="uri">https://www.nature.com/articles/s41467-024-55606-y</a></td>
+<td align="left"><a href="https://doi.org/10.1016/j.atmosenv.2025.121074" class="uri">https://doi.org/10.1016/j.atmosenv.2025.121074</a></td>
 </tr>
 <tr class="even">
 <td align="left">NfixationRates</td>
@@ -781,12 +929,34 @@ the user. One polygon per study site.</td>
 </div>
 <div id="output-data" class="section level2">
 <h2>Output data</h2>
-<p>Description of the module outputs.</p>
+<p>The module’s main outputs are the Biome-BGC <code>.ini</code> control
+files, grouped by pixel group:</p>
+<ul>
+<li><code>bbgcSpinup.ini</code> — a named list of parsed spin-up
+<code>.ini</code> objects (as returned by
+<code>BiomeBGCR::iniRead()</code>), one per pixel group/scenario, named
+by pixel group ID.</li>
+<li><code>bbgc.ini</code> — a named list of parsed main-run
+<code>.ini</code> objects (same structure), which carry over the
+spin-up’s ending state.</li>
+</ul>
+<p>These parsed <code>.ini</code> objects are passed on to
+<code>BiomeBGC_core</code>, which writes them to disk (via
+<code>BiomeBGCR::iniWrite()</code>) and runs Biome-BGC itself. The
+module also returns the spatial units used to generate those files:</p>
+<ul>
+<li><code>pixelGroupMap</code> — a raster showing which pixel group each
+pixel belongs to (only kept as a saved output if
+<code>savePixelGroupMap = TRUE</code>).</li>
+<li><code>pixelGroupParameters</code> — a table of the site
+characteristics (climate polygon, dominant species, soil, elevation,
+etc.) associated with each pixel group.</li>
+</ul>
 <table>
 <colgroup>
-<col width="15%" />
-<col width="9%" />
-<col width="75%" />
+<col width="10%" />
+<col width="5%" />
+<col width="84%" />
 </colgroup>
 <thead>
 <tr class="header">
@@ -798,15 +968,17 @@ the user. One polygon per study site.</td>
 <tbody>
 <tr class="odd">
 <td align="left">bbgcSpinup.ini</td>
-<td align="left">character</td>
-<td align="left">Biome-BGC initialization files for the spinup. Path to
-the .ini files (one path per site/scenario).</td>
+<td align="left">list</td>
+<td align="left">Biome-BGC initialization files for the spinup. Named
+list of parsed ini objects (as returned by BiomeBGCR::iniRead()), one
+per pixel group/scenario, named by pixel group id.</td>
 </tr>
 <tr class="even">
 <td align="left">bbgc.ini</td>
-<td align="left">character</td>
-<td align="left">Biome-BGC initialization files. Path to the .ini files
-(one path per site/scenario).</td>
+<td align="left">list</td>
+<td align="left">Biome-BGC initialization files. Named list of parsed
+ini objects (as returned by BiomeBGCR::iniRead()), one per pixel
+group/scenario, named by pixel group id.</td>
 </tr>
 <tr class="odd">
 <td align="left">pixelGroupMap</td>
@@ -824,7 +996,20 @@ the .ini files (one path per site/scenario).</td>
 </div>
 <div id="links-to-other-modules" class="section level1">
 <h1>Links to other modules</h1>
-<p>Prepares inputs for <code>BiomeBGC_core</code>.</p>
+<p><code>BiomeBGC_dataPrep</code> is typically the first module run in a
+Biome-BGC workflow — it has no upstream module dependencies, and
+prepares inputs for <code>BiomeBGC_core</code>, which reads the
+<code>bbgcSpinup.ini</code>/<code>bbgc.ini</code> files produced here to
+run the model. Model output from <code>BiomeBGC_core</code> can in turn
+be validated against observed flux tower data using
+<code>BiomeBGC_validationFluxTower</code>.</p>
+<pre class="mermaid"><code>flowchart LR
+    A[studyArea + optional inputs] --&gt; B[preparePixelGroups]
+    B --&gt; C[prepareSpinupIni]
+    C --&gt; D[prepareIni]
+    D --&gt; E[&quot;bbgcSpinup.ini / bbgc.ini&quot;]
+    E --&gt; F[BiomeBGC_core]
+    F --&gt; G[BiomeBGC_validationFluxTower]</code></pre>
 </div>
 <div id="references" class="section level1 unnumbered">
 <h1 class="unnumbered">References</h1>
@@ -866,6 +1051,11 @@ Marcus W. Beck, and Mike Johnson. 2025. <em>Elevatr: <span>Access</span>
 <span>Elevation</span> <span>Data</span> from <span>Various</span>
 <span>APIs</span></em>. <a href="https://doi.org/10.5281/zenodo.8335450">https://doi.org/10.5281/zenodo.8335450</a>.
 </div>
+<div id="ref-kattge_try_2020" class="csl-entry">
+Kattge, Jens, Gerhard Bönisch, Sandra Díaz, et al. 2020.
+<span>“<span>TRY</span> Plant Trait Database – Enhanced Coverage and
+Open Access.”</span> <em>Global Change Biology</em> 26 (1): 119–88. <a href="https://doi.org/10.1111/gcb.14904">https://doi.org/10.1111/gcb.14904</a>.
+</div>
 <div id="ref-liu_north_2014" class="csl-entry">
 Liu, Shishi, Y. Wei, W. M. Post, R. B. Cook, K. Schaefer, and M. M.
 Thornton. 2014. <em>North <span>American</span> <span>Carbon</span>
@@ -886,6 +1076,21 @@ Reis Ely, Carla R., Steven S. Perakis, Cory C. Cleveland, et al. 2025.
 <span>“A Global Dataset of Terrestrial Biological Nitrogen
 Fixation.”</span> <em>Scientific Data</em> 12 (1): 1362. <a href="https://doi.org/10.1038/s41597-025-05131-4">https://doi.org/10.1038/s41597-025-05131-4</a>.
 </div>
+<div id="ref-robichaud_data_2026" class="csl-entry">
+Robichaud, Alain, Amanda Cole, Irene Cheng, et al. 2026. <span>“Data
+Fusion of Modelled and Measured Deposition in the <span>US</span> and
+<span>Canada</span>, Part <span>II</span>: <span>Dry</span> Deposition
+of Sulfur, Nitrogen and Ozone.”</span> <em>Atmospheric Environment</em>
+364 (January): 121656. <a href="https://doi.org/10.1016/j.atmosenv.2025.121656">https://doi.org/10.1016/j.atmosenv.2025.121656</a>.
+</div>
+<div id="ref-robichaud_data_2025" class="csl-entry">
+Robichaud, Alain, Amanda Cole, Irene Cheng, Hazel Cathcart, Jian Feng,
+and Amy Hou. 2025. <span>“Data Fusion of Modelled and-Measured
+Deposition in the <span>U.S.</span> And <span>Canada</span>, Part
+<span>I</span>: <span>Description</span> of Methodology and Validation
+of Wet Deposition of Sulfur and Nitrogen.”</span> <em>Atmospheric
+Environment</em> 347 (April): 121074. <a href="https://doi.org/10.1016/j.atmosenv.2025.121074">https://doi.org/10.1016/j.atmosenv.2025.121074</a>.
+</div>
 <div id="ref-white_parameterization_2000" class="csl-entry">
 White, Michael A., Peter E. Thornton, Steven W. Running, and Ramakrishna
 R. Nemani. 2000. <span>“Parameterization and <span>Sensitivity</span>
@@ -894,11 +1099,6 @@ R. Nemani. 2000. <span>“Parameterization and <span>Sensitivity</span>
 <span>Net</span> <span>Primary</span> <span>Production</span>
 <span>Controls</span>.”</span> <em>Earth Interactions</em> 4 (3): 1–85.
 <a href="https://doi.org/10.1175/1087-3562(2000)004%3C0003:PASAOT%3E2.0.CO;2">https://doi.org/10.1175/1087-3562(2000)004&lt;0003:PASAOT&gt;2.0.CO;2</a>.
-</div>
-<div id="ref-zhu_changing_2025" class="csl-entry">
-Zhu, Jianxing, Yanlong Jia, Guirui Yu, et al. 2025. <span>“Changing
-Patterns of Global Nitrogen Deposition Driven by Socio-Economic
-Development.”</span> <em>Nature Communications</em> 16 (1): 46. <a href="https://doi.org/10.1038/s41467-024-55606-y">https://doi.org/10.1038/s41467-024-55606-y</a>.
 </div>
 </div>
 </div>
