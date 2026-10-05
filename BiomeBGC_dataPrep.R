@@ -167,7 +167,7 @@ defineModule(sim, list(
                    "second for N deposition at another timestep. The layer name",
                    "of the second raster needs to be the year of the data."
                  ),
-                 sourceURL = "https://www.nature.com/articles/s41467-024-55606-y"
+                 sourceURL = "https://doi.org/10.1016/j.atmosenv.2025.121074"
     ),
     expectsInput("NfixationRates", "SpatRaster",
                  desc = paste(
@@ -212,18 +212,20 @@ defineModule(sim, list(
   outputObjects = bindrows(
     createsOutput(
       objectName = "bbgcSpinup.ini",
-      objectClass = "character",
+      objectClass = "list",
       desc = paste(
         "Biome-BGC initialization files for the spinup.",
-        "Path to the .ini files (one path per site/scenario)."
+        "Named list of parsed ini objects (as returned by BiomeBGCR::iniRead()),",
+        "one per pixel group/scenario, named by pixel group id."
       )
     ),
     createsOutput(
       objectName = "bbgc.ini",
-      objectClass = "character",
+      objectClass = "list",
       desc =  paste(
         "Biome-BGC initialization files.",
-        "Path to the .ini files (one path per site/scenario)."
+        "Named list of parsed ini objects (as returned by BiomeBGCR::iniRead()),",
+        "one per pixel group/scenario, named by pixel group id."
       )
     ),
     createsOutput("pixelGroupMap", "SpatRaster", desc = paste("")),
@@ -721,7 +723,7 @@ climatePolygonMap <- function(climatePolygons){
   }
   
   # Total N deposition
-  # Default source: ADAGIO project, Robichaud et al.,2020: (https://doi.org/10.1016/j.atmosenv.2025.121074; https://doi.org/10.1016/j.atmosenv.2025.121656)
+  # Default source: ADAGIO project, Robichaud et al., 2025, 2026: (https://doi.org/10.1016/j.atmosenv.2025.121074; https://doi.org/10.1016/j.atmosenv.2025.121656)
   if (!suppliedElsewhere('Ndeposition', sim)) {
     year1 <- max(start(sim), 2015)
     year2 <- min(end(sim), 2020)
