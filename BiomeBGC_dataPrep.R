@@ -41,6 +41,9 @@ defineModule(sim, list(
                           "11: soil carbon, slowest pool (kgC/m2)"
                     )
     ),
+    defineParameter("dataYear", "integer",  2015, NA, NA,
+                    paste("Year of the data layer used.")
+    ),
     defineParameter("climModel", "character", "RCM4", NA, NA,
                     paste("A climatic model to extract meteorological data.",
                           "Either 'RCM4', 'GCM4', or 'Hadley'.")
@@ -238,7 +241,7 @@ doEvent.BiomeBGC_dataPrep = function(sim, eventTime, eventType) {
     eventType,
     init = {
       # if there are no treed-pixels, skip all events
-      if (inherits(sim$dominantSpecies, "SpatRaster") &&  all(is.na(values(sim$dominantSpecies)))) {
+      if (inherits(sim$dominantSpecies, "SpatRaster") &&  all(is.na(values(sim$dominantSpecies)) | (values(sim$dominantSpecies) == 0))) {
         return(invisible(sim))
       }
       
@@ -597,10 +600,10 @@ climatePolygonMap <- function(climatePolygons){
   # Default source: NTEMS dominant species layer for the 1st year of simulation
   if (!suppliedElsewhere('dominantSpecies', sim)) {
     
-    yearToUse <- max(min(start(sim), 2022), 1984)
+    yearToUse <- max(min(P(sim)$dataYear, 2022), 1984)
     
-    if (yearToUse != start(sim)){
-      message("NTEMS dominant species layer is not available for ", start(sim),
+    if (yearToUse != P(sim)$dataYear){
+      message("NTEMS dominant species layer is not available for ", P(sim)$dataYear,
               ", using layer for ", yearToUse)
     }
     
@@ -612,7 +615,7 @@ climatePolygonMap <- function(climatePolygons){
       maskTo = rstTo
     ) |> Cache()
     
-    treedPixels <- !is.na(values(sim$dominantSpecies))
+    treedPixels <- !is.na(values(sim$dominantSpecies)) & (values(sim$dominantSpecies) != 0)
     
     # If there are no pixels with trees, skip.
     if (all(!treedPixels)){
@@ -725,7 +728,7 @@ climatePolygonMap <- function(climatePolygons){
   # Total N deposition
   # Default source: ADAGIO project, Robichaud et al., 2025, 2026: (https://doi.org/10.1016/j.atmosenv.2025.121074; https://doi.org/10.1016/j.atmosenv.2025.121656)
   if (!suppliedElsewhere('Ndeposition', sim)) {
-    year1 <- max(start(sim), 2015)
+    year1 <- max(P(sim)$dataYear, 2015)
     year2 <- min(end(sim), 2020)
     sim$Ndeposition <-  prepNdeposition(
       destinationPath = dPath,
