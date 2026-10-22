@@ -117,7 +117,7 @@ test_that("prepEPC() downloads the master EPC table, filters to the requested sp
   sppEquiv <- data.frame(speciesId = "Pice_gla", stringsAsFactors = FALSE)
 
   epc <- prepEPC(
-    url = "https://drive.google.com/file/d/1ffAiI9_8cR8nUOXWiWbEa59vOtqEx_ii/view?usp=sharing",
+    url = "https://raw.githubusercontent.com/DominiqueCaron/EPCdata/main/outputs/defaultEPC.csv",
     sppEquiv = sppEquiv,
     destinationPath = destinationPath
   )

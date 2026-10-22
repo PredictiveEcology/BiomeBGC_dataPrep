@@ -147,7 +147,8 @@ defineModule(sim, list(
                    "Ecophysiological constants. Columns are speciesId, species, PFT, and",
                    "the ecological constants (see template). By default,",
                    "ecophysiologicalConstants are extracted from White et al., 2000,",
-                   "Hessl et al., 2004, and TRY.")
+                   "Hessl et al., 2004, and TRY (see DominiqueCaron/EPCdata for the",
+                   "full processing pipeline).")
     ),
     expectsInput("elevation", "SpatRaster",
                  desc = paste(
@@ -679,10 +680,12 @@ climatePolygonMap <- function(climatePolygons){
   }
   
   # Table of ecophysiological constants of each species Id
+  # Default source: DominiqueCaron/EPCdata (outputs/defaultEPC.csv on main)
+  # https://github.com/DominiqueCaron/EPCdata
   if (!suppliedElsewhere('ecophysiologicalConstants', sim)) {
     
     sim$ecophysiologicalConstants <- prepEPC(
-      url = "https://drive.google.com/file/d/1ffAiI9_8cR8nUOXWiWbEa59vOtqEx_ii/view?usp=sharing",
+      url = "https://raw.githubusercontent.com/DominiqueCaron/EPCdata/main/outputs/defaultEPC.csv",
       sppEquiv = sim$sppEquiv,
       destinationPath = dPath
     ) |> Cache()
