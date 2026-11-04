@@ -24,7 +24,7 @@ defineModule(sim, list(
                   ## (BioSIM). Require::extractPkgName() falls back to parsing the repo name unless
                   ## the reqdPkgs entry is named, which otherwise makes SpaDES.core::convertToPackage()
                   ## write "Imports: BioSimClient_R" (a nonexistent package) instead of "Imports: BioSIM".
-                  "CWFC-CCFB/J4R", BioSIM = "RNCan/BioSimClient_R", "geosphere", "ggpubr"),
+                  "CWFC-CCFB/J4R", BioSIM = "RNCan/BioSimClient_R", "geosphere", "ggpubr", "sf"),
   parameters = bindrows(
     defineParameter("carbonState", "numeric", c(0.001, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0), NA, NA,
                     paste("11-number vector for initial carbon conditions:",
