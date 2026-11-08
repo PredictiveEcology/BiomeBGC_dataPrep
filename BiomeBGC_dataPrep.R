@@ -9,8 +9,8 @@ defineModule(sim, list(
   description = "Prepares inputs to run Biome-BGC.",
   keywords = "",
   authors = c(
-    person("Dominique", "Caron", email = "dominique.caron@nrcan-rncan.gc.ca", role = c("aut", "cre")),
-    person("Céline", "Boisvenue", email = "celine.boisvenue@nrcan-rncan.gc.ca", role = "ctb")
+    person("Céline", "Boisvenue", email = "celine.boisvenue@nrcan-rncan.gc.ca", role = c("cre", "ctb")),
+    person("Dominique", "Caron", email = "dominique.caron@nrcan-rncan.gc.ca", role = c("aut"))
   ),
   childModules = character(0),
   version = list(BiomeBGC_dataPrep = "0.0.0.9000"),
@@ -245,30 +245,30 @@ doEvent.BiomeBGC_dataPrep = function(sim, eventTime, eventType) {
       if (inherits(sim$dominantSpecies, "SpatRaster") &&  all(is.na(values(sim$dominantSpecies)) | (values(sim$dominantSpecies) == 0))) {
         return(invisible(sim))
       }
-      
+
       sim <- preparePixelGroups(sim)
-      
+
       sim <- prepareSpinupIni(sim)
-      
+
       sim <- prepareIni(sim)
-      
+
       # schedule plotting
       if (anyPlotting(P(sim)$.plots)) sim <- scheduleEvent(sim, end(sim), "BiomeBGC_dataPrep", "plot", eventPriority = 12)
     },
     plot = {
       # Will save in a common BiomeBGC folder
       figPath <- file.path(outputPath(sim), "BiomeBGC_figures")
-      
+
       # Climate plot
       metPlot <- climatePlot(sim$meteorologicalData)
-      
+
       SpaDES.core::Plots(metPlot,
                          filename = "climatePlot",
                          path = figPath,
                          ggsaveArgs = list(width = 14, height = 5, units = "in", dpi = 300),
                          types = "png")
-      
-      
+
+
       # Raster of the climate polygon
       SpaDES.core::Plots(sim$climatePolygons,
                          filename = "climatePolygons",
@@ -276,7 +276,7 @@ doEvent.BiomeBGC_dataPrep = function(sim, eventTime, eventType) {
                          path = figPath,
                          deviceArgs = list(width = 7, height = 7, units = "in", res = 300),
                          types = "png")
-      
+
     },
     warning(noEventWarning(sim))
   )
@@ -289,7 +289,7 @@ Save <- function(sim) {
   # ! ----- EDIT BELOW ----- ! #
   # do stuff for this event
   sim <- saveFiles(sim)
-  
+
   # ! ----- STOP EDITING ----- ! #
   return(invisible(sim))
 }
@@ -297,28 +297,28 @@ Save <- function(sim) {
 preparePixelGroups <- function(sim) {
   message("Grouping pixels sharing parameters.")
   field <- "climatePolygonId"
-  
+
   # tag if studyArea is a point vector
   SAisPolygon <- geomtype(sim$studyArea) == "polygons"
-  
+
   if (SAisPolygon){
-    
+
     pixelGroups <- prepPixelGroups(sim$dominantSpecies, sim$climatePolygons, sim$soilTexture, sim$soilDepth, sim$shortwaveAlbedo, sim$Ndeposition, sim$NfixationRates, sim$elevation, sim$snowpackWaterContent, sim$rasterToMatch) |> Cache()
     sim$pixelGroupParameters <- pixelGroups$pixelGroupParameters
     sim$pixelGroupMap <- pixelGroups$pixelGroupMap
-    
+
     if(P(sim)$savePixelGroupMap){
       terra::writeRaster(sim$pixelGroupMap,
                          filename = file.path(outputPath(sim), "pixelGroupMap.tif"),
                          overwrite = TRUE)
     }
-    
+
   } else {
     # dominant species
     if (inherits(sim$dominantSpecies, "SpatRaster")){
       # if the studyArea is points, extract values for each point
       dominantSpecies <- extract(sim$dominantSpecies, sim$studyArea)
-      
+
       # If points falls in a non-treed pixel, find the closest pixel with a leading species
       i <- 1
       dominantSpeciesRast <- sim$dominantSpecies
@@ -337,9 +337,9 @@ preparePixelGroups <- function(sim) {
     } else {
       dominantSpecies <- sim$dominantSpecies
     }
-    
+
     latitudes <- project(crds(sim$studyArea), crs(sim$studyArea), "EPSG:4326")[,2]
-    
+
     sim$pixelGroupParameters <- data.table(
       pixelGroup = 1:length(sim$studyArea),
       climatePolygon = extract(sim$climatePolygons, sim$studyArea)[field] |> unlist(),
@@ -356,7 +356,7 @@ preparePixelGroups <- function(sim) {
       latitude = round(latitudes, 1),
       snowPackWaterContent = extract(sim$snowpackWaterContent, sim$studyArea, ID = FALSE) |> unlist()
     )
-    
+
     sim$pixelGroupMap <- rasterize(sim$studyArea, sim$soilTexture$sand)
   }
   return(invisible(sim))
@@ -365,13 +365,13 @@ preparePixelGroups <- function(sim) {
 prepareSpinupIni <- function(sim) {
   message("Creating ini files for the spinup.")
   iniTemplate <- iniRead(system.file("inputs/ini/template.ini", package = "BiomeBGCR"))
-  
+
   # Calendar year of the first year of the spinup met record (matches the
   # "_spinup.mtc43" file written by prepClimateSinglePolygon()). Computed once
   # and reused below for both TIME_DEFINE and the CO2 lookup so the two stay
   # in sync.
   spinupFirstYear <- start(sim) - P(sim)$metSpinupYears
-  
+
   # set sections that are shared across all pixelGroups
   ## Set TIME_DEFINE section
   iniTemplate <- iniSet(iniTemplate, "TIME_DEFINE", 1, P(sim)$metSpinupYears) # number of year in the metdata
@@ -379,22 +379,22 @@ prepareSpinupIni <- function(sim) {
   iniTemplate <- iniSet(iniTemplate, "TIME_DEFINE", 3, spinupFirstYear) #first simulation year, matches the spinup met file's own calendar year
   iniTemplate <- iniSet(iniTemplate, "TIME_DEFINE", 4, 1) # 1 = spinup, 0 = normal simulation
   iniTemplate <- iniSet(iniTemplate, "TIME_DEFINE", 5, P(sim)$maxSpinupYears) # max spinup years
-  
+
   ## Set CLIM_CHANGE section
   iniTemplate <- iniSet(iniTemplate, "CLIM_CHANGE", c(1:5), P(sim)$climateChangeOptions)
-  
+
   ## Set CO2_CONTROL section
   # Constant CO2 during spinup, using the concentration at the beginning of the
   # spinup period (the spinup met file's first calendar year).
   iniTemplate <- iniSet(iniTemplate, "CO2_CONTROL", 1, 0) # Constant co2 concentration during spinup
   iniTemplate <- iniSet(iniTemplate, "CO2_CONTROL", 2, sim$CO2concentration[sim$CO2concentration$year == spinupFirstYear, "co2_ppm"])
-  
+
   # Set C_STATE section
   iniTemplate <- iniSet(iniTemplate, "C_STATE", 1:11, P(sim)$carbonState)
-  
+
   # Set N_STATE section
   iniTemplate <- iniSet(iniTemplate, "N_STATE", 1:2, P(sim)$nitrogenState)
-  
+
   # Set OUTPUT_CONTROL section
   # TODO make sure this is what we want for the spinup
   iniTemplate <- iniSet(iniTemplate, "OUTPUT_CONTROL", 2:6,
@@ -403,7 +403,7 @@ prepareSpinupIni <- function(sim) {
                           0, # 1 = annual avg of daily variables   0 = no annual avg
                           0, # 1 = write annual output  0 = no annual output
                           1)) # for on-screen progress indicator
-  
+
   # Set DAILY_OUTPUT section
   nDailyOutput <- length(P(sim)$outputVariables)
   # Rewrite, it is easier given that the size of the section varies
@@ -418,21 +418,21 @@ prepareSpinupIni <- function(sim) {
       comment = getOutputDescription(P(sim)$outputVariables)
     )
   )
-  
+
   # Set RESTART section
   iniTemplate <- iniSet(iniTemplate, "RESTART", c(1:4), c(0, 1, 0, 0))
-  
+
   # Set RAMP_NDEP section: N deposition constant for the spinup
   iniTemplate <- iniSet(iniTemplate, "RAMP_NDEP", 1, 0)
-  
+
   # Set the W_STATE section
   iniTemplate <- iniSet(iniTemplate, "W_STATE", 2, P(sim)$waterState[2])
-  
+
   # Species lookup table linking species name and id
   species_lookup <- setNames(sim$sppEquiv$species, sim$sppEquiv$speciesId)
   # Name of the second reference year for N deposition
   Ndep_yr2 = ifelse(nlyr(sim$Ndeposition) == 2, names(sim$Ndeposition[[2]]), NA)
-  
+
   # Prepare ini files for the spinup
   sim$bbgcSpinup.ini <- prepSpinupIni(
     pixelGroupParameters = sim$pixelGroupParameters,
@@ -469,37 +469,37 @@ prepareIni <- function(sim) {
                        sep = "_")
   co2filePath <-file.path("inputs", "co2", co2fileName)
   rampNdep <- P(sim)$NDepositionLevel[1]
-  
+
   bbgc.ini <- lapply(seq_len(nPixelGroups), function(i){
     parameters <- pixGroupParams[i, ]
     # Start from the spinup ini
     ini <- sim$bbgcSpinup.ini[[as.character(parameters$pixelGroup)]]
-    
+
     ## Set MET_INPUT section
     fileName <- tolower(paste0(
       parameters$climatePolygon,
       met_suffix
     ))
     ini <- iniSet(ini, "MET_INPUT", 1, file.path("inputs", "metdata", fileName))
-    
+
     # Change the RESTART section
     ini <- iniSet(ini, "RESTART", c(1:4), c(1, 0, 0, 0))
     ini <- iniSet(ini, "RESTART", 5, file.path("inputs", "restart", paste0(parameters$pixelGroup, ".restart")))
     ini <- iniSet(ini, "RESTART", 6, file.path("inputs", "restart", paste0(parameters$pixelGroup, "_out.restart")))
-    
+
     # Change the TIME_DEFINE section
     ini <- iniSet(ini, "TIME_DEFINE", 1, nyear) # number of year in the metdata
     ini <- iniSet(ini, "TIME_DEFINE", 2, nyear) # number of simulation years
     ini <- iniSet(ini, "TIME_DEFINE", 3, firstyear) #first simulation year
     ini <- iniSet(ini, "TIME_DEFINE", 4, 0) # 1 = spinup, 0 = normal simulation
-    
+
     # Change the CO2 section
     ini <- iniSet(ini, "CO2_CONTROL", 1, 1)
     ini <- iniSet(ini, "CO2_CONTROL", 3, co2filePath)
-    
+
     # Change the RAMP_NDEP section
     ini <- iniSet(ini, "RAMP_NDEP", 1, rampNdep)
-    
+
     # Change OUTPUT_CONTROL section
     fileName <- file.path("outputs", paste0(parameters$pixelGroup, "_out"))
     ini <- iniSet(ini, "OUTPUT_CONTROL", 1, fileName)
@@ -510,52 +510,52 @@ prepareIni <- function(sim) {
       0, # 1 = write annual output  0 = no annual output
       0  # for on-screen progress indicator
     ))
-    
+
     return(ini)
   })
   names(bbgc.ini) <- sim$pixelGroupParameters$pixelGroup
   sim$bbgc.ini <- bbgc.ini
-  
+
   return(invisible(sim))
 }
 
 climatePlot <- function(metData) {
   pal <- rainbow(n = length(metData))
-  
+
   # for each climate polygon, calculate annual precipitation, and average temperature
   metData <- lapply(metData, function(climPolygonData){
     if(!inherits(climPolygonData, "data.table")) climPolygonData <- as.data.table(climPolygonData)
     climPolygonData[ ,.(tavg = mean(tday), annPrcp = sum(prcp) * 10), by = year]
   })
-  
+
   # get into a single data.table
   metData <- rbindlist(metData, idcol = "climatePolygon")
-  
+
   TempPlot <- ggplot(metData) +
     geom_line(aes(x = year, y = tavg, color = climatePolygon), linewidth = 0.75) +
     labs(x = "Year", y = "Daytime average temperature (°C)", color = "Climate polygon") +
     theme_bw() +
     scale_color_manual(values = pal)
-  
+
   PrecipPlot <- ggplot(metData) +
     geom_line(aes(x = year, y = annPrcp, color = climatePolygon), linewidth = 0.75) +
     labs(x = "Year", y = "Annual precipitation (mm)", color = "Climate polygon") +
     theme_bw() +
     scale_color_manual(values = pal)
-  
-  
+
+
   p <- ggpubr::ggarrange(TempPlot, PrecipPlot,  common.legend = TRUE, legend = "right")
-  
+
   return(p)
 }
 
 climatePolygonMap <- function(climatePolygons){
   pal <- rainbow(n = length(climatePolygons))
-  
+
   if (!("climatePolygonId" %in% names(climatePolygons))){
     climatePolygons$climatePolygonId <- c(1:length(climatePolygons))
   }
-  
+
   p <- terra::plot(climatePolygons, "climatePolygonId", col = pal, plg = list(title="Climate polygon"))
   return(p)
 }
@@ -565,49 +565,49 @@ climatePolygonMap <- function(climatePolygons){
   message(currentModule(sim), ": using dataPath '", dPath, "'.")
   # Study area needs to be either points or a polygon
   if (!suppliedElsewhere('studyArea', sim)) {
-    
+
     stop("studyArea must be provided.")
-    
+
   }
-  
+
   # Check that the studyArea is either a SpatVector polygon or point
   if (geomtype(sim$studyArea) == "polygons"){
-    
+
     if (!suppliedElsewhere('rasterToMatch', sim)) {
-      
+
       stop("Please provide a rasterToMatch when studyArea is a polygon.")
-      
+
     } else {
       rstTo <- sim$rasterToMatch
       polyTo <- sim$studyArea
       treedPixels <- !is.na(values(sim$rasterToMatch))
     }
-    
+
   } else if (geomtype(sim$studyArea) == "points"){
-    
+
     # Used to crop/mask/project the inputs
     polyTo <- buffer(sim$studyArea, 10^4)
     rstTo <- terra::rast(polyTo, res = res(sim$rasterToMatch))
     values(rstTo) <- 1
     treedPixels <- 1
-    
+
   } else {
-    
+
     stop("studyArea must be a SpatVector polygon or points")
-    
+
   }
-  
+
   # Dominant species layer
   # Default source: NTEMS dominant species layer for the 1st year of simulation
   if (!suppliedElsewhere('dominantSpecies', sim)) {
-    
+
     yearToUse <- max(min(P(sim)$dataYear, 2022), 1984)
-    
+
     if (yearToUse != P(sim)$dataYear){
       message("NTEMS dominant species layer is not available for ", P(sim)$dataYear,
               ", using layer for ", yearToUse)
     }
-    
+
     sim$dominantSpecies <- prepNTEMSDominantSpecies(
       year = yearToUse,
       destinationPath = dPath,
@@ -615,17 +615,17 @@ climatePolygonMap <- function(climatePolygons){
       projectTo = rstTo,
       maskTo = rstTo
     ) |> Cache()
-    
+
     treedPixels <- !is.na(values(sim$dominantSpecies)) & (values(sim$dominantSpecies) != 0)
-    
+
     # If there are no pixels with trees, skip.
     if (all(!treedPixels)){
       message("No treed-pixel in the study area. No simulation will be made by Biome-BGC")
       return(invisible(sim))
     }
-    
+
   }
-  
+
   # Climate polygons: Climate is assumed to be homogeneous within polygons
   # Default source: Canadian ecodistrict
   if (!suppliedElsewhere('climatePolygons', sim)) {
@@ -638,7 +638,7 @@ climatePolygonMap <- function(climatePolygons){
     ) |>
       Cache()
     sim$climatePolygons$climatePolygonId <- sim$climatePolygons$ECODISTRIC
-    
+
     # keeps the polygons that touches the studyarea
     rel <- terra::relate(
       sim$climatePolygons,
@@ -646,18 +646,18 @@ climatePolygonMap <- function(climatePolygons){
       relation = "intersects"
     )
     poly_indices <- which(rowSums(rel) > 0)
-    
+
     sim$climatePolygons <- sim$climatePolygons[poly_indices, ]
-    
+
     # if dominantSpecie is a raster
     if (inherits(sim$dominantSpecies, "SpatRaster")){
       forestedClimatePolygons <- extract(sim$dominantSpecies, sim$climatePolygons, fun = mean, na.rm = TRUE, ID = FALSE)
       forestedClimatePolygons <- !is.na(forestedClimatePolygons[ ,1])
       sim$climatePolygons <- sim$climatePolygons[forestedClimatePolygons, ]
     }
-    
+
   }
-  
+
   # Table to link the dominant species to traits of White et al., 2000
   if (!suppliedElsewhere('sppEquiv', sim)) {
     sppEquiv <- LandR::sppEquivalencies_CA[, c("LandR", "Latin_full", "Type")]
@@ -678,56 +678,56 @@ climatePolygonMap <- function(climatePolygons){
     }
     sim$sppEquiv <- sppEquiv[match(speciesInStudyArea, sppEquiv$speciesId),]
   }
-  
+
   # Table of ecophysiological constants of each species Id
   # Default source: DominiqueCaron/EPCdata (outputs/defaultEPC.csv on main)
   # https://github.com/DominiqueCaron/EPCdata
   if (!suppliedElsewhere('ecophysiologicalConstants', sim)) {
-    
+
     sim$ecophysiologicalConstants <- prepEPC(
       url = "https://raw.githubusercontent.com/DominiqueCaron/EPCdata/main/outputs/defaultEPC.csv",
       sppEquiv = sim$sppEquiv,
       destinationPath = dPath
     ) |> Cache()
-    
+
   }
-  
+
   # Soil texture (% sand, % silt, % clay)
   # Default sources: CanSIS Soil Landscape Grids of Canada
   # Using the 15-30cm depth layer
   if (!suppliedElsewhere('soilTexture', sim)) {
-    
+
     sim$soilTexture <- prepSoilTexture(
       destinationPath = dPath,
       to = rstTo,
       treedPixels = treedPixels
     ) |> Cache()
-    
+
   }
-  
+
   # Soil Depth
   # Default source: ORNL NACP MsTMIP
   if (!suppliedElsewhere('soilDepth', sim)) {
-    
+
     sim$soilDepth <- prepSoilDepth(
       destinationPath = dPath,
       to = rstTo,
       treedPixels = treedPixels
     ) |> Cache()
-    
+
   }
-  
+
   # Elevation raster
   # Default source: Amazon Web Services Terrain Tiles
   if (!suppliedElsewhere('elevation', sim)) {
-    
+
     sim$elevation <- prepElevation(
       studyArea = sim$studyArea,
       to = rstTo
     ) |> Cache()
-    
+
   }
-  
+
   # Total N deposition
   # Default source: ADAGIO project, Robichaud et al., 2025, 2026: (https://doi.org/10.1016/j.atmosenv.2025.121074; https://doi.org/10.1016/j.atmosenv.2025.121656)
   if (!suppliedElsewhere('Ndeposition', sim)) {
@@ -742,7 +742,7 @@ climatePolygonMap <- function(climatePolygons){
     ) |> Cache()
     names(sim$Ndeposition) <- c(year1, year2)
   }
-  
+
   # Total N fixation rates
   # Default source Reis Ely et al., 2025: https://doi.org/10.1038/s41597-025-05131-4
   if (!suppliedElsewhere('NfixationRates', sim)) {
@@ -751,21 +751,21 @@ climatePolygonMap <- function(climatePolygons){
       to = rstTo,
       treedPixels = treedPixels
     ) |> Cache()
-    
+
   }
-  
+
   # Initial snowpack water content
   # Default source: ECC snow water equivalent (SWE) over the Northern Hemisphere
   # Methods: Mudryk et al., 2015: https://doi.org/10.1175/JCLI-D-15-0229.1
   if (!suppliedElsewhere('snowpackWaterContent', sim)) {
-    
+
     # data is available for 1981-2020
     yearToUse <- min(max(start(sim), 1981), 2020)
     if(yearToUse != start(sim)){
       message("Snowpack water content data is not available for ",
               start(sim), ", using data of ", yearToUse)
     }
-    
+
     # Get data
     sim$snowpackWaterContent <- prepSnowpackWaterContent(
       destinationPath = dPath,
@@ -774,9 +774,9 @@ climatePolygonMap <- function(climatePolygons){
       year = yearToUse,
       treedPixels = treedPixels
     ) |> Cache()
-    
+
   }
-  
+
   # Shortwave Albedo
   # Default source: Based on SCANFI landcover and albedo of land cover type in
   # Gao et al., 2005 (https://doi.org/10.1029/2004JD005190)
@@ -792,11 +792,11 @@ climatePolygonMap <- function(climatePolygons){
     albedoTable <- rvestAlbedoTable(dPath) |> Cache()
     sim$shortwaveAlbedo <- lccToAlbedo(lcc, albedoTable, rstTo) |> Cache()
   }
-  
+
   # Meteorological data
   # Default source: BioSIM
   if (!suppliedElsewhere('meteorologicalData', sim)) {
-    
+
     sim$meteorologicalData <- prepClimate(
       climatePolygons = sim$climatePolygons,
       simStartYear = start(sim),
@@ -806,23 +806,23 @@ climatePolygonMap <- function(climatePolygons){
       climModel = P(sim)$climModel,
       destinationPath= dPath
     ) |> Cache()
-    
+
   }
-  
+
   # CO2 atmospheric concentration
   # Default source: Emission data for the different RCPs downloaded from
   # Folini et al., 2025: https://doi.org/10.1093/restud/rdae011
   if (!suppliedElsewhere('CO2concentration', sim)) {
-    
+
     sim$CO2concentration <- prepCo2Concentration(
       firstYear = start(sim)-P(sim)$metSpinupYears,
       lastYear = end(sim),
       scenario = P(sim)$co2scenario,
       destinationPath= dPath
     ) |> Cache()
-    
+
   }
-  
+
   return(invisible(sim))
 }
 
